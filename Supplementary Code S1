@@ -1,0 +1,287 @@
+# Supplementary Code S1
+# ACU quantification — pooled logit-log standard curve
+# FPV ELISA, plates 26-29
+# AC & AMF, Colby College
+# March 2026
+
+pkgs <- c("lme4", "dplyr")
+for (p in pkgs) {
+  if (!requireNamespace(p, quietly = TRUE))
+    install.packages(p, repos = "https://cloud.r-project.org")
+}
+library(lme4); library(dplyr)
+
+
+# ---- raw OD data ----
+# hardcoded from Gen5 ELx808 exports, rows A-H cols 1-12
+# if adapting for new plates, replace these matrices or use read_excel()
+
+p26 <- matrix(c(
+  3.644, 3.611, 0.709, 1.495, 1.021, 1.778, 1.361, 0.921, 2.632, 1.473, 0.907, 0.424,
+  3.138, 3.089, 0.745, 1.462, 1.039, 1.742, 1.323, 1.049, 2.700, 1.414, 0.854, 0.397,
+  2.526, 2.370, 2.180, 1.548, 1.640, 1.011, 1.610, 1.415, 1.413, 2.449, 1.118, 0.438,
+  1.796, 1.728, 2.235, 0.377, 1.625, 0.998, 1.595, 1.429, 1.379, 2.453, 1.113, 0.461,
+  1.280, 1.138, 2.146, 1.181, 1.673, 1.280, 2.158, 1.171, 0.901, 0.934, 1.045, 0.364,
+  0.929, 0.843, 1.420, 1.213, 1.825, 1.166, 2.126, 1.362, 0.948, 0.953, 1.061, 0.479,
+  0.716, 0.647, 1.411, 1.557, 1.446, 1.699, 1.846, 1.752, 1.259, 1.741, 1.177, 0.481,
+  0.590, 0.571, 1.526, 1.485, 1.427, 1.705, 1.812, 1.669, 1.216, 1.639, 1.273, 0.490
+), nrow = 8, ncol = 12, byrow = TRUE)
+rownames(p26) <- LETTERS[1:8]; colnames(p26) <- 1:12
+
+p27 <- matrix(c(
+  3.310, 3.358, 0.691, 1.147, 1.978, 1.065, 1.156, 0.742, 0.753, 1.067, 1.244, 0.397,
+  2.373, 2.872, 0.686, 1.207, 1.941, 1.133, 1.512, 0.881, 0.996, 1.342, 1.064, 0.396,
+  1.845, 2.208, 2.129, 1.293, 0.871, 0.758, 0.805, 1.204, 1.275, 1.530, 1.152, 0.379,
+  1.289, 1.605, 2.030, 0.344, 0.922, 0.895, 0.813, 1.134, 1.312, 1.354, 1.025, 0.421,
+  0.910, 1.146, 1.985, 0.520, 2.436, 0.611, 1.604, 0.654, 2.638, 0.875, 0.971, 0.407,
+  0.734, 0.811, 1.493, 0.775, 2.822, 1.405, 2.540, 0.868, 2.705, 0.986, 0.964, 0.375,
+  0.580, 0.632, 1.489, 0.977, 0.946, 1.419, 0.750, 1.250, 0.955, 0.942, 1.398, 0.391,
+  0.506, 0.521, 1.494, 0.977, 1.069, 1.653, 0.875, 1.303, 1.023, 1.178, 1.485, 0.463
+), nrow = 8, ncol = 12, byrow = TRUE)
+rownames(p27) <- LETTERS[1:8]; colnames(p27) <- 1:12
+
+p28 <- matrix(c(
+  2.737, 2.644, 0.582, 0.813, 0.813, 0.522, 0.717, 0.780, 0.717, 0.495, 1.175, 0.338,
+  2.477, 1.985, 0.575, 0.815, 0.803, 0.491, 0.672, 0.722, 0.656, 0.669, 1.230, 0.333,
+  1.657, 1.462, 1.651, 0.846, 0.763, 0.798, 0.841, 0.697, 0.461, 0.887, 0.471, 0.294,
+  1.243, 1.079, 1.681, 0.251, 0.809, 0.724, 1.006, 0.683, 0.530, 1.045, 0.523, 0.384,
+  0.941, 0.776, 1.640, 0.480, 0.827, 0.609, 0.804, 0.541, 0.716, 1.557, 0.643, 0.286,
+  0.724, 0.589, 1.219, 0.410, 0.722, 0.576, 0.754, 0.437, 0.645, 1.505, 0.619, 0.315,
+  0.644, 0.457, 1.221, 1.258, 0.957, 1.438, 0.627, 0.852, 0.471, 0.911, 0.714, 0.348,
+  0.623, 0.417, 1.184, 1.213, 0.965, 1.350, 0.541, 0.800, 0.580, 0.695, 0.640, 0.367
+), nrow = 8, ncol = 12, byrow = TRUE)
+rownames(p28) <- LETTERS[1:8]; colnames(p28) <- 1:12
+
+p29 <- matrix(c(
+  3.508, 3.424, 0.665, 1.111, 0.763, 0.823, 0.757, 1.000, 0.811, 1.139, 1.159, 0.360,
+  2.978, 2.882, 0.656, 1.137, 0.696, 0.821, 0.811, 1.024, 0.896, 1.083, 1.097, 0.311,
+  2.365, 2.142, 1.965, 1.163, 1.480, 2.552, 1.806, 1.790, 1.046, 0.640, 1.610, 0.328,
+  1.723, 1.538, 1.949, 0.272, 1.364, 2.413, 1.814, 1.647, 0.989, 0.783, 1.510, 0.370,
+  1.213, 1.099, 1.982, 0.884, 1.392, 1.284, 1.362, 0.751, 3.655, 1.169, 0.808, 0.422,
+  0.901, 0.766, 1.394, 0.921, 1.346, 1.550, 1.034, 0.963, 3.519, 1.213, 0.756, 0.378,
+  0.695, 0.595, 1.391, 0.683, 2.207, 1.519, 1.494, 0.775, 1.446, 1.117, 1.393, 0.461,
+  0.552, 0.496, 1.355, 0.731, 1.863, 1.411, 1.236, 0.756, 1.380, 1.114, 1.532, 0.443
+), nrow = 8, ncol = 12, byrow = TRUE)
+rownames(p29) <- LETTERS[1:8]; colnames(p29) <- 1:12
+
+od_plates <- list("26" = p26, "27" = p27, "28" = p28, "29" = p29)
+plate_ids <- c(26, 27, 28, 29)
+acu_conc <- c(128, 64, 32, 16, 8, 4, 2, 1)
+
+
+# ---- plate map ----
+# col 1-2: dup standard curve (128 -> 1 ACU, rows A-H)
+# col 3 A-B: neg controls
+# col 3 C-E: QC high (FSJ-490), triplicate
+# col 3 F-H: QC mid (FSJ-475), triplicate
+# col 4 A-C: QC low (FSJ-491), triplicate
+# col 4 D: blank
+# col 4 E-H, col 5-11: test samples, dup pairs A+B C+D E+F G+H
+# col 12: blanks
+
+odmax_scale <- 1.10  # headroom so logit doesn't blow up at the top
+
+is_test <- function(r, c) {
+  if (c <= 2 || c == 12) return(FALSE)
+  if (c == 3) return(FALSE)  # whole column is neg or QC
+  if (c == 4 && r <= 4) return(FALSE)  # QC low + blank
+  TRUE
+}
+
+get_qc <- function(r, c) {
+  if (c == 3 && r %in% 3:5) return("QC_high")
+  if (c == 3 && r %in% 6:8) return("QC_mid")
+  if (c == 4 && r %in% 1:3) return("QC_low")
+  NA_character_
+}
+
+
+# ---- blanks and OD_max ----
+# 9 blank wells per plate: col 12 (8) + D4 (1)
+
+get_params <- function(od) {
+  blk <- mean(c(od[, 12], od["D", 4]))
+  bs128 <- mean(c(od["A", 1], od["A", 2])) - blk
+  list(blank = blk, odmax = bs128 * odmax_scale,
+       sc1 = od[, 1], sc2 = od[, 2])
+}
+
+params <- lapply(od_plates, get_params)
+for (i in seq_along(plate_ids))
+  cat(sprintf("  P%d blank=%.4f odmax=%.4f\n",
+              plate_ids[i], params[[i]]$blank, params[[i]]$odmax))
+
+
+# ---- standard curve ----
+# normalize each plate to relative binding, logit transform, pool everything
+
+sc <- do.call(rbind, lapply(seq_along(plate_ids), function(i) {
+  pp <- params[[i]]
+  bs1 <- pp$sc1 - pp$blank; bs2 <- pp$sc2 - pp$blank
+  y1 <- pmin(pmax(bs1 / pp$odmax, 0.001), 0.999)
+  y2 <- pmin(pmax(bs2 / pp$odmax, 0.001), 0.999)
+  data.frame(plate = factor(plate_ids[i]),
+             acu = rep(acu_conc, 2),
+             log_acu = rep(log10(acu_conc), 2),
+             bs = c(bs1, bs2),
+             logit_y = c(log(y1/(1-y1)), log(y2/(1-y2))),
+             rep = rep(c("c1","c2"), each = 8))
+}))
+
+fit <- lm(logit_y ~ log_acu, data = sc)
+summary(fit)
+
+cat(sprintf("\npooled: logit(y) = %.4f + %.4f * log10(ACU), R2=%.4f\n",
+            coef(fit)[1], coef(fit)[2], summary(fit)$r.squared))
+
+# per-plate slopes
+for (pid in plate_ids) {
+  s <- coef(lm(logit_y ~ log_acu, data = sc[sc$plate == pid, ]))[2]
+  cat(sprintf("  P%d slope=%.3f\n", pid, s))
+}
+pslopes <- sapply(plate_ids, function(pid)
+  coef(lm(logit_y ~ log_acu, data = sc[sc$plate == pid, ]))[2])
+cat(sprintf("  slope range: %.2f-%.2f, CV=%.1f%%\n",
+            min(pslopes), max(pslopes), 100*sd(pslopes)/mean(pslopes)))
+
+
+# ---- mixed effects ----
+# do plate random effects matter after normalization?
+# spoiler: no
+
+me <- lmer(logit_y ~ log_acu + (1 + log_acu | plate), data = sc,
+           REML = TRUE, control = lmerControl(optimizer = "bobyqa"))
+# boundary singular fit warning is expected — means random effects are ~0
+summary(me)
+VarCorr(me)
+ranef(me)
+
+me0 <- lmer(logit_y ~ log_acu + (1 | plate), data = sc,
+            REML = TRUE, control = lmerControl(optimizer = "bobyqa"))
+anova(me0, me, refit = FALSE)  # p=1, random slope adds nothing
+
+# tried nlme too, same result
+# library(nlme)
+# me_nlme <- lme(logit_y ~ log_acu, random = ~log_acu | plate, data = sc)
+# intervals(me_nlme)  # random effects CIs include 0
+
+
+# ---- back-calculate ACU ----
+# this is the actual workhorse function
+
+get_acu <- function(od, blank, odmax) {
+  bs <- od - blank
+  y <- pmin(pmax(bs / odmax, 0.001), 0.999)
+  lg <- log(y / (1 - y))
+  b <- coef(fit)
+  out <- 10^((lg - b[1]) / b[2])
+  pmin(pmax(out, 0.5), 256)  # cap extrapolated values
+}
+
+
+# ---- extract test samples ----
+
+wells <- do.call(rbind, lapply(seq_along(plate_ids), function(i) {
+  od <- od_plates[[i]]; pp <- params[[i]]
+  out <- data.frame()
+  for (col in 3:11) {
+    for (row in 1:8) {
+      if (!is_test(row, col)) next
+      raw <- od[row, col]
+      if (is.na(raw)) next
+      out <- rbind(out, data.frame(
+        plate = plate_ids[i], row = LETTERS[row], col = col,
+        well = paste0(LETTERS[row], col),
+        pair_id = paste0("P", plate_ids[i], "_c", col, "_", ceiling(row/2)),
+        raw_od = raw, bs = raw - pp$blank,
+        acu = get_acu(raw, pp$blank, pp$odmax),
+        stringsAsFactors = FALSE))
+    }
+  }
+  out
+}))
+
+cat(sprintf("\ntest wells: %d\n", nrow(wells)))  # should be 240
+
+
+# ---- QC ----
+
+qc <- do.call(rbind, lapply(seq_along(plate_ids), function(i) {
+  od <- od_plates[[i]]; pp <- params[[i]]
+  out <- data.frame()
+  for (col in 3:4) {
+    for (row in 1:8) {
+      lab <- get_qc(row, col)
+      if (is.na(lab)) next
+      out <- rbind(out, data.frame(
+        plate = plate_ids[i], well = paste0(LETTERS[row], col),
+        qc = lab, raw_od = od[row, col],
+        acu = get_acu(od[row, col], pp$blank, pp$odmax),
+        stringsAsFactors = FALSE))
+    }
+  }
+  out
+}))
+
+# intra-assay: triplicate CV within each plate
+intra <- qc %>% group_by(qc, plate) %>%
+  summarise(cv = 100 * sd(acu)/mean(acu), .groups = "drop") %>%
+  group_by(qc) %>% summarise(mean_cv = mean(cv), .groups = "drop")
+print(intra)
+# pooled from high + mid only (low is reported separately)
+cat(sprintf("pooled intra (high+mid): %.1f%%\n",
+            mean(intra$mean_cv[intra$qc != "QC_low"])))
+
+# inter-assay: CV of plate means
+inter <- qc %>% group_by(qc, plate) %>%
+  summarise(pm = mean(acu), .groups = "drop") %>%
+  group_by(qc) %>%
+  summarise(inter_cv = 100 * sd(pm)/mean(pm), .groups = "drop")
+print(inter)
+cat(sprintf("pooled inter (high+mid): %.1f%%\n",
+            mean(inter$inter_cv[inter$qc != "QC_low"])))
+cat(sprintf("low QC inter: %.1f%%\n", inter$inter_cv[inter$qc == "QC_low"]))
+
+
+# ---- average duplicates ----
+
+samples <- wells %>%
+  group_by(plate, col, pair_id) %>%
+  summarise(mean_acu = mean(acu),
+            dup_cv = 100 * sd(acu)/mean(acu),
+            n = n(), .groups = "drop") %>%
+  arrange(plate, col)
+
+cat(sprintf("\nn=%d samples, median dup CV=%.1f%%\n",
+            nrow(samples), median(samples$dup_cv, na.rm = TRUE)))
+
+
+# ---- outlier + population summary ----
+
+G <- (max(samples$mean_acu) - mean(samples$mean_acu)) / sd(samples$mean_acu)
+cat(sprintf("grubbs G=%.3f (ACU=%.1f) — obvious outlier\n", G, max(samples$mean_acu)))
+
+trimmed <- samples %>% filter(mean_acu < 200)
+
+cat(sprintf("\n--- n=%d after outlier exclusion ---\n", nrow(trimmed)))
+cat(sprintf("mean=%.2f  median=%.2f  sd=%.2f\n",
+            mean(trimmed$mean_acu), median(trimmed$mean_acu), sd(trimmed$mean_acu)))
+cat(sprintf("range: %.2f - %.2f\n", min(trimmed$mean_acu), max(trimmed$mean_acu)))
+cat(sprintf("IQR: %.1f - %.1f\n",
+            quantile(trimmed$mean_acu, .25), quantile(trimmed$mean_acu, .75)))
+
+sw <- shapiro.test(log(trimmed$mean_acu))
+cat(sprintf("shapiro on log(ACU): p=%.3f %s\n", sw$p.value,
+            ifelse(sw$p.value > 0.05, "— log-normal not rejected", "")))
+
+
+# ---- export ----
+
+write.csv(wells, "acu_test_wells.csv", row.names = FALSE)
+write.csv(samples, "acu_sample_means.csv", row.names = FALSE)
+write.csv(trimmed, "acu_trimmed_n119.csv", row.names = FALSE)
+write.csv(qc, "acu_qc_wells.csv", row.names = FALSE)
+write.csv(sc, "standard_curve_data.csv", row.names = FALSE)
+
+# write.csv(as.data.frame(intra), "intra_cv.csv", row.names = FALSE)
+# write.csv(as.data.frame(inter), "inter_cv.csv", row.names = FALSE)

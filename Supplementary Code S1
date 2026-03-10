@@ -14,7 +14,7 @@ library(lme4); library(dplyr)
 
 # ---- raw OD data ----
 # hardcoded from Gen5 ELx808 exports, rows A-H cols 1-12
-# if adapting for new plates, replace these matrices or use read_excel()
+# if adapting for new plates, replace these matrices or read excel
 
 p26 <- matrix(c(
   3.644, 3.611, 0.709, 1.495, 1.021, 1.778, 1.361, 0.921, 2.632, 1.473, 0.907, 0.424,

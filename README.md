@@ -1,13 +1,13 @@
 # Avipoxvirus ELISA
 
-Code and data for the FPV ELISA methods paper (Carlson & Forsman).
+Code and data for the FPV ELISA methods paper (Carlson & Forsman)
 
-Semi-quantitative indirect ELISA for avipoxvirus antibodies in Florida Scrub Jays, using a pooled logit-log standard curve to get ACU values from 4 plates of 30 birds each.
+Semi-quantitative indirect ELISA for avipoxvirus antibodies in Florida Scrub-Jays, using a pooled logit-log standard curve to get ACU values from 4 plates of 30 birds each.
 
 ## What's here
 
 **R scripts**
-- `Supplementary_Code_S1.R` — the whole pipeline start to finish. Standard curve, mixed effects, ACU calculation, QC, figures. All OD values are hardcoded so you don't need the Excel files to run it.
+- `Supplementary_Code_S1.R` — the whole pipeline start to finish. Standard curve, mixed effects, ACU calculation, QC, exports. All OD values are hardcoded so you don't need the Excel files to run it.
 - `fpv_figures.R` — main text + supplementary figures. Run after the main script.
 - `fig_S1_4pl_comparison.R` — compares pooled logit-log to per-plate 4PL. Needs `minpack.lm`. Also run after the main script.
 

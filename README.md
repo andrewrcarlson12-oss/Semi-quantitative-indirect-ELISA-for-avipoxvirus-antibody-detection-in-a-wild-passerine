@@ -1,56 +1,55 @@
 # Avipoxvirus ELISA
 
-Code and data for the FPV ELISA methods paper (Carlson & Forsman)
+Code and data for the FPV ELISA methods paper (Carlson & Forsman).
 
-Semi-quantitative indirect ELISA for avipoxvirus antibodies in Florida Scrub-Jays, using a pooled logit-log standard curve to get ACU values from 4 plates of 30 birds each.
+Semi-quantitative indirect ELISA for avipoxvirus antibodies in Florida Scrub-Jays. Pooled logit-log standard curve, ACU values back-calculated across 4 plates of 30 birds each.
 
 ## What's here
 
-**R scripts**
-- `Supplementary_Code_S1.R` — the whole pipeline start to finish. Standard curve, mixed effects, ACU calculation, QC, exports. All OD values are hardcoded so you don't need the Excel files to run it.
-- `fpv_figures.R` — main text + supplementary figures. Run after the main script.
-- `fig_S1_4pl_comparison.R` — compares pooled logit-log to per-plate 4PL. Needs `minpack.lm`. Also run after the main script.
+**Code**
+- `Supplementary Code S1` — the whole pipeline. Standard curve fit, mixed-effects sanity checks, ACU back-calculation, QC stats, exports. All OD values are hardcoded from the Gen5 plate reader exports, so you don't need any Excel files to run it.
 
 **Data**
-- `acu_sample_means.csv` — the 120 birds, duplicate-averaged
-- `acu_test_wells.csv` — all 240 individual wells
-- `acu_qc_wells.csv` — QC triplicate data (high/mid/low × 4 plates)
-- `standard_curve_data.csv` — 64 standard curve points
+- `ACU Sample Values` — 120 birds, duplicate-averaged ACU and mean OD
+- `ACU Test Wells` — all 240 individual wells with raw OD, blank-subtracted OD, and back-calculated ACU
+- `ACU QC Wells` — QC triplicate data (high/mid/low × 4 plates)
+- `Standard Curve` — 64 standard curve points (8 dilutions × 2 reps × 4 plates), raw OD through logit-transformed relative binding
+
+Running the script regenerates the four data files. The values are identical to what's already in the repo.
 
 ## Plate layout
 
-Same for all 4 plates:
+Same on all 4 plates:
 
 ```
-Col 1-2:  standard curve (128 -> 1 ACU, dup)
+Col 1-2:  standard curve (128 → 1 ACU, duplicate)
 Col 3 AB: negative controls
 Col 3 CE: QC high (FSJ-490), triplicate
 Col 3 FH: QC mid (FSJ-475), triplicate
 Col 4 AC: QC low (FSJ-491), triplicate
 Col 4 D:  blank
-Col 4 EH, Col 5-11: test samples, dup pairs A+B C+D E+F G+H
+Col 4 EH, Col 5-11: test samples, duplicate pairs A+B, C+D, E+F, G+H
 Col 12:   blanks
 ```
 
-30 samples/plate × 4 plates = 120 birds.
+30 test samples per plate × 4 plates = 120 birds.
 
 ## How to run
 
 ```r
-source("Supplementary_Code_S1.R")   # everything
-source("fpv_figures.R")              # figures (needs objects from above)
-source("fig_S1_4pl_comparison.R")    # 4PL comparison (also needs above)
+source("Supplementary Code S1")
 ```
 
-Packages install themselves if missing. Needs R ≥ 4.0.
+That's it. The script installs `lme4` and `dplyr` if they're missing, runs the OLS fit, runs the mixed-effects model to confirm plate random effects are negligible, computes intra- and inter-assay CVs, flags the Grubbs outlier, and writes the four CSVs. Needs R ≥ 4.0.
 
-## The short version of the method
+## Method in one paragraph
 
-Blank-subtract → normalize to relative binding (OD/OD_max) → logit transform → pool all 4 plates → OLS regression → invert to get ACU. Pooled equation: logit(y) = −3.345 + 2.461 × log10(ACU), R² = 0.957.
+Blank-subtract each well, normalize to relative binding (`bs_OD / OD_max`), logit-transform, pool all four plates, fit OLS, invert to get ACU.
 
-Mixed effects confirmed plate random effects are zero after normalization, so pooling is fine.
+Pooled equation: `logit(y) = −3.345 + 2.461 × log10(ACU)`, R² = 0.957.
+
+The mixed-effects model exists to confirm what you can already see from the per-plate slopes (CV = 4.1%): plate random effects collapse to zero after normalization, so pooling is fine. The boundary singular fit warning is the point, not a problem.
 
 ## Citation
 
-Carlson, A.C. and Forsman, A.M. (2026). Development and validation of a semi-quantitative indirect ELISA for avipoxvirus antibody detection in a wild passerine using purified chorioallantoic membrane antigen.
-
+Carlson AC, Forsman AM. 2026. Development and validation of a semi-quantitative indirect ELISA for avipoxvirus antibody detection in a wild passerine using purified chorioallantoic membrane antigen. In review.

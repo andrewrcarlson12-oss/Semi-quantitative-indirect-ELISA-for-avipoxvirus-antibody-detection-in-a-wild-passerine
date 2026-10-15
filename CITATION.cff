@@ -1,0 +1,14 @@
+cff-version: 1.2.0
+message: "If you use this code or data, please cite it as below."
+title: "Semi-quantitative indirect ELISA for avipoxvirus antibody detection in a wild passerine"
+abstract: "Code and data for Carlson AR, Forsman AM. Development and analytical validation of a semi-quantitative indirect ELISA for detection of anti-avipoxvirus antibodies in Florida Scrub-Jays (Aphelocoma coerulescens) using purified chorioallantoic membrane antigen. Conservation Physiology."
+authors:
+  - family-names: "Carlson"
+    given-names: "Andrew R."
+    affiliation: "Colby College"
+    orcid: "https://orcid.org/0009-0001-8400-1048"
+  - family-names: "Forsman"
+    given-names: "Anna M."
+    affiliation: "Colby College"
+    orcid: "https://orcid.org/0000-0002-5942-4671"
+license: MIT

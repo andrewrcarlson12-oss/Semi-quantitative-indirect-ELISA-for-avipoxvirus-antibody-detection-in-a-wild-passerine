@@ -7,15 +7,16 @@ Semi-quantitative indirect ELISA for avipoxvirus antibodies in Florida Scrub-Jay
 ## What's here
 
 **Code**
-- `Supplementary Code S1` — the whole pipeline. Standard curve fit, mixed-effects sanity checks, ACU back-calculation, QC stats, exports. All OD values are hardcoded from the Gen5 plate reader exports, so you don't need any Excel files to run it.
+- `Supplementary Code S1`: the whole pipeline. Standard curve fit, mixed-effects sanity checks, ACU back-calculation, QC stats, exports. All OD values are hardcoded from the Gen5 plate reader exports, so you don't need any Excel files to run it.
+- `Supplementary Code S2`: the experiments that ran on other plates. Antigen depletion test, dilutional parallelism, pre-absorption, spike and recovery, urea avidity, lot-to-lot comparison. ODs are hardcoded the same way. It prints the results for each one and doesn't write any files.
 
 **Data**
-- `ACU Sample Values` — 120 birds, duplicate-averaged ACU and mean OD
-- `ACU Test Wells` — all 240 individual wells with raw OD, blank-subtracted OD, and back-calculated ACU
-- `ACU QC Wells` — QC triplicate data (high/mid/low × 4 plates)
-- `Standard Curve` — 64 standard curve points (8 dilutions × 2 reps × 4 plates), raw OD through logit-transformed relative binding
+- `ACU Sample Values`: 120 birds, duplicate-averaged ACU and mean OD
+- `ACU Test Wells`: all 240 individual wells with raw OD, blank-subtracted OD, and back-calculated ACU
+- `ACU QC Wells`: QC triplicate data (high/mid/low × 4 plates)
+- `Standard Curve`: 64 standard curve points (8 dilutions × 2 reps × 4 plates), raw OD through logit-transformed relative binding
 
-Running the script regenerates the four data files. The values are identical to what's already in the repo.
+Running S1 regenerates the four data files. The values are identical to what's already in the repo.
 
 ## Plate layout
 
@@ -38,9 +39,10 @@ Col 12:   blanks
 
 ```r
 source("Supplementary Code S1")
+source("Supplementary Code S2")
 ```
 
-That's it. The script installs `lme4` and `dplyr` if they're missing, runs the OLS fit, runs the mixed-effects model to confirm plate random effects are negligible, computes intra- and inter-assay CVs, flags the Grubbs outlier, and writes the four CSVs. Needs R ≥ 4.0.
+That's it. S1 needs `lme4` and `dplyr`. It runs the OLS fit, runs the mixed-effects model to confirm plate random effects are negligible, computes intra- and inter-assay CVs, flags the Grubbs outlier, and writes the four CSVs. S2 only needs base R, but its lot comparison reads `Standard Curve`, so run it from the repo folder. Needs R ≥ 4.0.
 
 ## Method in one paragraph
 
@@ -52,4 +54,4 @@ The mixed-effects model exists to confirm what you can already see from the per-
 
 ## Citation
 
-Carlson AC, Forsman AM. 2026. Development and validation of a semi-quantitative indirect ELISA for avipoxvirus antibody detection in a wild passerine using purified chorioallantoic membrane antigen. In review.
+Carlson AR, Forsman AM. 2026. Development and analytical validation of a semi-quantitative indirect ELISA for detection of anti-avipoxvirus antibodies in Florida Scrub-Jays (*Aphelocoma coerulescens*) using purified chorioallantoic membrane antigen. In review.

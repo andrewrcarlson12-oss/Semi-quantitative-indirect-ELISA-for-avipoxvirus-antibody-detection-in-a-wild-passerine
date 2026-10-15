@@ -1,0 +1,160 @@
+# FPV ELISA, validation plates other than 26-29
+# AC + AMF, October 2026
+#
+# Depletion test, dilutional parallelism, pre-absorption, spike and recovery,
+# urea avidity and the lot comparison, one block each. Raw ODs are hardcoded
+# from the Gen5 ELx808 exports, same as S1. Base R only.
+
+
+# ---- depletion test ----------------------------------------------------------
+# crude CAM homogenate vs fully purified antigen, matched wells on one plate,
+# HRP anti-bird IgY conjugate only (no plasma), 16 wells each
+crude    <- c(2.507, 2.430, 2.454, 2.395, 2.403, 2.445, 2.475, 2.486,
+              2.489, 2.407, 2.438, 2.444, 2.393, 2.411, 2.411, 2.430)
+purified <- c(0.092, 0.090, 0.091, 0.090, 0.090, 0.089, 0.081, 0.087,
+              0.093, 0.094, 0.096, 0.092, 0.091, 0.089, 0.089, 0.094)
+
+w <- t.test(crude, purified)   # Welch
+cat(sprintf("depletion: crude %.3f +/- %.3f, purified %.4f +/- %.4f, %.1f%% lower\n",
+            mean(crude), sd(crude), mean(purified), sd(purified),
+            100 * (1 - mean(purified) / mean(crude))))
+cat(sprintf("Welch t = %.1f, df = %.1f, p = %.2e\n\n", w$statistic, w$parameter, w$p.value))
+
+
+# ---- dilutional parallelism --------------------------------------------------
+# two-fold dilutions, 1x to 64x. chicken positive control in duplicate
+# (averaged), pooled FSJ and pooled Tree Swallow plasma in single wells.
+# log10 blank-corrected OD on log10 dilution, then a species x dilution
+# interaction against chicken
+par_blank <- mean(c(0.194, 0.158, 0.153, 0.163, 0.168, 0.178, 0.210, 0.265))
+chicken <- (c(3.151, 2.504, 1.795, 1.409, 0.952, 0.635, 0.461) +
+            c(3.300, 2.563, 1.904, 1.286, 0.942, 0.616, 0.447)) / 2
+fsj     <- c(3.651, 3.209, 2.383, 1.535, 0.967, 0.640, 0.487)
+tres    <- c(4.017, 4.123, 2.856, 1.391, 0.633, 0.312, 0.261)
+
+par <- data.frame(species = rep(c("chicken", "FSJ", "TRES"), each = 7),
+                  x = rep(log10(2^(0:6)), 3),
+                  y = log10(c(chicken, fsj, tres) - par_blank))
+slopes <- sapply(split(par, par$species), function(d) coef(lm(y ~ x, data = d))[["x"]])
+cat("parallelism slopes:", sprintf("%s %.3f", names(slopes), slopes), "\n")
+
+for (sp in c("FSJ", "TRES")) {
+  d <- subset(par, species %in% c("chicken", sp))
+  d$species <- relevel(factor(d$species), "chicken")
+  full <- lm(y ~ x * species, data = d)
+  a    <- anova(lm(y ~ x + species, data = d), full)
+  ci   <- sort(100 * confint(full)[4, ] / slopes[["chicken"]])   # % of the chicken slope
+  cat(sprintf("%s vs chicken: %.1f%% steeper (95%% CI %.1f%% to %.1f%%), F = %.2f, df = 1, %d, p = %.3f\n",
+              sp, 100 * (slopes[[sp]] / slopes[["chicken"]] - 1), ci[1], ci[2],
+              a$F[2], a$Res.Df[2], a$`Pr(>F)`[2]))
+}
+cat("\n")
+
+
+# ---- antigen pre-absorption --------------------------------------------------
+# positive-control chicken serum, FSJ and Tree Swallow plasma, each
+# pre-incubated with soluble purified antigen (inhibited) or blocking buffer
+# (uninhibited). inhibition = drop in blank-corrected OD, averaged over pairs
+pa_blank <- mean(c(0.245, 0.322, 0.216, 0.230, 0.254, 0.237, 0.249, 0.271))
+pa <- data.frame(
+  sample      = c("chicken", "chicken", "FSJ", "FSJ", "FSJ", "TRES", "TRES", "TRES"),
+  uninhibited = c(1.565, 1.588, 0.523, 0.819, 0.469, 0.729, 0.764, 0.695),
+  inhibited   = c(1.142, 1.038, 0.432, 0.547, 0.391, 0.287, 0.287, 0.341))
+pa$inhibition <- 100 * (pa$uninhibited - pa$inhibited) / (pa$uninhibited - pa_blank)
+inh <- tapply(pa$inhibition, pa$sample, mean)
+cat("pre-absorption inhibition:", sprintf("%s %.1f%%", names(inh), inh), "\n\n")
+
+
+# ---- spike and recovery ------------------------------------------------------
+# three FSJ samples spiked with positive-control chicken serum at 1:2,000,
+# 1:4,000 and 1:8,000, duplicate wells (averaged). expected = the standard at
+# the same dilution. recovery = measured / expected
+sr_blank <- mean(c(0.370, 0.397, 0.418, 0.416, 0.437, 0.462, 0.470, 0.503,
+                   0.374, 0.428, 0.470, 0.443))
+sr_acu <- function(od) {   # OD -> ACU
+  x <- od - sr_blank
+  0.5979 * x^5 - 4.0731 * x^4 + 10.894 * x^3 - 12.846 * x^2 + 10.24 * x - 1.8421
+}
+spiked <- list(
+  `1:2,000` = list(`454` = c(2.965, 3.022), `506` = c(3.000, 2.952), `202` = c(3.275, 3.202)),
+  `1:4,000` = list(`454` = c(1.666, 1.697), `506` = c(1.684, 1.701), `202` = c(1.910, 1.897)),
+  `1:8,000` = list(`454` = c(1.220, 1.285), `506` = c(1.282, 1.276), `202` = c(1.426, 1.460)))
+standard_od <- c(`1:2,000` = 3.057, `1:4,000` = 2.348, `1:8,000` = 1.618)
+
+for (lv in names(spiked)) {
+  expected <- sr_acu(standard_od[[lv]])
+  rec <- sapply(spiked[[lv]], function(od) 100 * sr_acu(mean(od)) / expected)
+  cat(sprintf("spike %s: expected %.2f ACU, recovery %.1f +/- %.1f%%\n",
+              lv, expected, mean(rec), sd(rec)))
+}
+cat("\n")
+
+
+# ---- urea avidity ------------------------------------------------------------
+# 17 FSJ samples, each in four wells: no urea (control), 2, 4 and 8 M urea.
+# avidity index = urea OD / control OD x 100
+ua <- data.frame(
+  id      = c(487, 482, 484, 110, 109, 135, 164, 106, 165, 162, 119, 233, 102, 199, 124, 234, 241),
+  control = c(2.544, 3.054, 2.123, 2.008, 2.182, 1.332, 2.146, 1.737, 1.535, 1.757, 1.934, 1.452, 2.150, 0.937, 1.168, 2.074, 2.205),
+  urea_2M = c(1.980, 2.271, 1.620, 1.447, 1.677, 1.088, 1.592, 1.349, 1.242, 1.334, 1.519, 1.066, 1.782, 0.814, 0.901, 1.572, 1.785),
+  urea_4M = c(1.821, 1.786, 1.329, 1.146, 1.373, 0.942, 0.980, 1.224, 0.983, 1.018, 1.090, 0.877, 1.557, 0.766, 0.680, 1.058, 1.443),
+  urea_8M = c(1.412, 1.296, 1.086, 0.709, 0.779, 0.745, 0.616, 0.944, 0.698, 0.736, 0.644, 0.647, 1.184, 0.582, 0.426, 0.673, 0.742))
+for (m in c("2M", "4M", "8M")) {
+  ai <- 100 * ua[[paste0("urea_", m)]] / ua$control
+  ua[[paste0("ai_", m)]] <- ai
+  cat(sprintf("avidity index %s: %.1f +/- %.1f%%\n", m, mean(ai), sd(ai)))
+}
+cat(sprintf("4 M range %.1f-%.1f%%\n", min(ua$ai_4M), max(ua$ai_4M)))
+
+# ACU only ranks the samples on this plate, and ACU rises monotonically with
+# control OD, so Spearman on control OD gives the same rho
+ct <- cor.test(ua$control, ua$ai_4M, method = "spearman")
+cat(sprintf("ACU vs 4 M avidity index: Spearman rho = %.3f, p = %.2f\n\n", ct$estimate, ct$p.value))
+
+
+# ---- lot comparison ----------------------------------------------------------
+# both lots on one plate: reference lot in cols 5-7 (standards in col 7), new
+# lot in cols 10-12 (standards in edge col 12). each lot has 4 blanks, the
+# three QCs in quadruplicate and 8 single-well standards, listed 128 -> 1 ACU.
+# ACU from the plates 26-29 pooled equation with each lot's own blank and
+# OD_max. the equation is refit from "Standard Curve", so run from the repo folder
+sc     <- read.csv("Standard Curve")
+pooled <- coef(lm(logit_y ~ log10_acu, data = sc))
+
+lots <- list(
+  reference = list(blank = c(0.155, 0.167, 0.151, 0.153),
+                   QC_high = c(1.584, 1.228, 1.214, 1.471),   # FSJ-490
+                   QC_mid  = c(1.240, 1.190, 1.149, 1.069),   # FSJ-475
+                   QC_low  = c(1.041, 0.971, 1.178, 1.390),   # FSJ-491
+                   std = c(2.230, 1.574, 1.122, 0.723, 0.491, 0.342, 0.259, 0.228)),
+  new       = list(blank = c(0.160, 0.142, 0.137, 0.150),
+                   QC_high = c(1.792, 1.337, 1.789, 1.857),
+                   QC_mid  = c(1.323, 1.275, 1.283, 1.493),
+                   QC_low  = c(0.889, 0.985, 1.340, 1.017),
+                   std = c(2.930, 2.346, 1.593, 1.047, 0.642, 0.440, 0.314, 0.271)))
+std_acu <- c(128, 64, 32, 16, 8, 4, 2, 1)
+
+qc_means <- list()
+for (lot in names(lots)) {
+  L  <- lots[[lot]]
+  b  <- mean(L$blank)
+  ox <- (L$std[1] - b) * 1.10
+  y  <- function(od) pmin(pmax((od - b) / ox, 0.001), 0.999)
+  to_acu <- function(od) pmin(pmax(10 ^ ((log(y(od) / (1 - y(od))) - pooled[1]) / pooled[2]), 0.5), 256)
+  slope <- coef(lm(log(y(L$std) / (1 - y(L$std))) ~ log10(std_acu)))[2]
+  std_pct <- 100 * to_acu(L$std[2:7]) / std_acu[2:7]
+  cat(sprintf("%s lot: blank %.4f +/- %.4f, slope %.3f, 2-64 ACU standards at %.0f-%.0f%% of nominal\n",
+              lot, b, sd(L$blank), slope, min(std_pct), max(std_pct)))
+  for (q in c("QC_high", "QC_mid", "QC_low")) {
+    a <- to_acu(L[[q]])
+    qc_means[[lot]][q] <- mean(a)
+    cat(sprintf("   %-7s %.2f +/- %.2f ACU (CV %.1f%%)\n", q, mean(a), sd(a), 100 * sd(a) / mean(a)))
+  }
+}
+bt <- t.test(lots$reference$blank, lots$new$blank)
+cat(sprintf("blanks: Welch t = %.2f, df = %.1f, p = %.2f\n", bt$statistic, bt$parameter, bt$p.value))
+ratio <- qc_means$new / qc_means$reference
+lr <- t.test(log(ratio))
+cat("new/reference by QC:", sprintf("%s %.2f", names(ratio), ratio), "\n")
+cat(sprintf("geometric mean ratio %.2f (95%% CI %.2f-%.2f)\n",
+            exp(mean(log(ratio))), exp(lr$conf.int[1]), exp(lr$conf.int[2])))

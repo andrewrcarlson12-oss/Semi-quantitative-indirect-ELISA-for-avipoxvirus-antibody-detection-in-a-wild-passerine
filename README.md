@@ -54,4 +54,4 @@ The mixed-effects model exists to confirm what you can already see from the per-
 
 ## Citation
 
-Carlson AR, Forsman AM. 2026. Development and analytical validation of a semi-quantitative indirect ELISA for detection of anti-avipoxvirus antibodies in Florida Scrub-Jays (*Aphelocoma coerulescens*) using purified chorioallantoic membrane antigen. In review.
+Carlson AR, Forsman AM. 2026. Development and analytical validation of a semi-quantitative indirect ELISA for detection of anti-avipoxvirus antibodies in Florida Scrub-Jays (*Aphelocoma coerulescens*) using purified chorioallantoic membrane antigen. *Conservation Physiology*.
